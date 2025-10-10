@@ -1,0 +1,25 @@
+# Makefile
+
+# defaults
+SIM ?= verilator
+TOPLEVEL_LANG ?= verilog
+EXTRA_ARGS += --trace --trace-structs
+SIM_ARGS="+ibex_tracer_file_base=mytrace"
+PLUSARGS += +vcd
+
+WAVES = 1
+PWD = $(shell pwd)
+
+# verilog sources
+VERILOG_SOURCES += 
+VERILOG_SOURCES += 
+
+# TOPLEVEL is the name of the toplevel module in your Verilog or VHDL file
+TOPLEVEL = 
+
+# MODULE is the basename of the Python test file
+MODULE = 
+
+# include cocotb's make rules to take care of the simulator setup
+include $(shell cocotb-config --makefiles)/Makefile.sim
+
