@@ -11,14 +11,14 @@ WAVES = 1
 PWD = $(shell pwd)
 
 # verilog sources
-VERILOG_SOURCES += 
-VERILOG_SOURCES += 
+VERILOG_SOURCES += $(PWD)/../modules/fp_utils.sv
+VERILOG_SOURCES += $(PWD)/fp_add_wrapper.sv
 
 # TOPLEVEL is the name of the toplevel module in your Verilog or VHDL file
-TOPLEVEL = 
+TOPLEVEL = fp_add_wrapper
 
 # MODULE is the basename of the Python test file
-MODULE = 
+MODULE = fp_utils_tb
 
 # include cocotb's make rules to take care of the simulator setup
 include $(shell cocotb-config --makefiles)/Makefile.sim
