@@ -3,3 +3,4 @@
 **.xml
 sim_build/
 __pycache__/
+test.py

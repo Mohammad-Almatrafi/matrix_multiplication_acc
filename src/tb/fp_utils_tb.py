@@ -4,7 +4,7 @@ from cocotb.clock import Clock
 from cocotb.triggers import RisingEdge, FallingEdge, Timer
 import random
 
-def write_log_file(f ,src1, src2, expected, output,sim_time):
+def write_log_file(f ,src1, src2, expected, output,sim_time, sign_bool):
     A_sign       = np.binary_repr(src1.view(np.uint32) >> 31 & 1,1)
     A_mantissa   = np.binary_repr(src1.view(np.uint32) >> 0 & 0x7FFFFF,23)
     A_exponent   = np.binary_repr(src1.view(np.uint32) >> 23 & 0xFF,8)
@@ -21,6 +21,8 @@ def write_log_file(f ,src1, src2, expected, output,sim_time):
 
 
     f.write(f"simulation_time: {sim_time}\n")
+    if sign_bool:
+        f.write(f"sign difference\n")
     f.write("module output:\n")
     f.write(f"{src1} + {src2} = {np.uint32(output).view(np.float32)}\n")
     f.write("expected output:\n")
@@ -45,14 +47,15 @@ async def fp_add_test(dut):
     count = 0
     iterations = 100
     is_fail = False
-
+    diff_count = 0
     dut.A.value = 0
     dut.B.value = 0
+    rng = np.random.default_rng(42)
     with open("fp_add_test.log", "w") as f:
         for _ in range(iterations):
             await Timer(1, unit="ns")
-            x1 = random.uniform(np.float64(floating_min), np.float64(floating_max))
-            x2 = random.uniform(np.float64(floating_min), np.float64(floating_max))
+            x1 = rng.uniform(np.float64(floating_min), np.float64(floating_max))
+            x2 = rng.uniform(np.float64(floating_min), np.float64(floating_max))
             src1 = np.float32(x1)
             src2 = np.float32(x2)
             dut.A.value = int(src1.view(np.uint32))
@@ -67,15 +70,20 @@ async def fp_add_test(dut):
             if int(dut.Y.value) != expected:
                 is_fail = True
                 count += 1
+                sign_diff = (src1.view(np.uint32) >> 31 & 1) ^ (src2.view(np.uint32) >> 31 & 1)
+                sign_bool = sign_diff == 1
                 f.write(f"FAIL:\n")
-                write_log_file(f,src1, src2, expected, output,sim_time)
+                write_log_file(f,src1, src2, expected, output,sim_time,sign_bool)
+                diff_count += sign_diff
 
             else:
                 f.write(f"PASS:\n")
-                write_log_file(f,src1, src2, expected, output,sim_time)
+                sign_bool = False
+                write_log_file(f,src1, src2, expected, output,sim_time, sign_bool)
 
         f.write(f"tests passed: {iterations-count}\n" +
                 f"tests failed: {count}\n")
+        f.write(f"different signs fails: {diff_count}\n")
 
     if(is_fail):
         assert False

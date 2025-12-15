@@ -5,6 +5,7 @@
  * 2025-12-2 NOTE(rur1k): the module doesn't work for any rounding mode
  * except truncation till now
  */
+
 module fp_add #(
     parameter int SIZE = 32
 ) (
@@ -12,27 +13,6 @@ module fp_add #(
     input  logic [SIZE-1:0] B,
     output logic [SIZE-1:0] Y
 );
-
-  logic subtract;
-  logic A_exp_gt_B_exp;
-  logic cout;
-  logic op1_sign;
-  logic [EXPONENT-1:0] A_exp;
-  logic [EXPONENT-1:0] B_exp;
-  logic [MANTISSA-1:0] A_man;
-  logic [MANTISSA-1:0] B_man;
-  logic [EXPONENT-1:0] op1_exp;
-  logic [EXPONENT-1:0] op2_exp;
-  logic [MANTISSA:0]shifted_op2_man;
-  logic [MANTISSA-1:0] op1_man;
-  logic [MANTISSA-1:0] op2_man;
-  logic [MANTISSA:0] op2_man_temp;
-  logic [EXPONENT-1:0] shift_amt;
-  logic [MANTISSA:0] temp_mantissa;
-  logic [MANTISSA-1:0] out_mantissa;
-  logic [EXPONENT-1:0] temp_exponent;
-  logic op1_implicit_1;
-  logic op2_implicit_1;
 
   localparam int EXPONENT = SIZE == 16 ? 5 :
                             SIZE == 32 ? 8 :
@@ -51,35 +31,134 @@ module fp_add #(
       $fatal(1, "Floating point size %0d is not specified by the IEEE 754 standard", SIZE);
   end
 
-  assign subtract = A[SIZE-1] ^ B[SIZE-1];
-  assign A_exp = A[SIZE-2:SIZE-EXPONENT-1];
-  assign B_exp = B[SIZE-2:SIZE-EXPONENT-1];
-  assign A_man = A[SIZE-2-EXPONENT:0];
-  assign B_man = B[SIZE-2-EXPONENT:0];
-  assign op1_implicit_1 = A_exp != 0;
-  assign op2_implicit_1 = B_exp != 0;
+  logic [SIZE-1:0] op1;
+  logic [SIZE-1:0] op2;
+  logic [EXPONENT-1:0] out_exponent;
+  logic [MANTISSA-1:0] out_mantissa;
+  logic out_sign;
 
-  assign A_exp_gt_B_exp = A_exp > B_exp;
-  assign op1_exp = A_exp_gt_B_exp ? A_exp : B_exp;
-  assign op2_exp = A_exp_gt_B_exp ? B_exp : A_exp;
-  assign op1_sign = A_exp_gt_B_exp ? A[SIZE-1] : B[SIZE-1];
+  logic subtract;
+  logic [EXPONENT-1:0] shift_amt;
 
-  assign shift_amt = (op1_exp - op2_exp);
+  fp_add_order #(
+      .SIZE(SIZE),
+      .EXPONENT_SIZE(EXPONENT),
+      .MANTISSA_SIZE(MANTISSA)
+  ) fp_add_order_inst (
+      .A(A),
+      .B(B),
 
-  assign op1_man = A_exp_gt_B_exp ? A_man : B_man;
-  assign op2_man = A_exp_gt_B_exp ? B_man : A_man;
-  assign shifted_op2_man = {op2_implicit_1, op2_man} >> shift_amt;
+      .op1(op1),
+      .op2(op2),
+      .shift_amt(shift_amt),
+      .subtract(subtract)
+  );
 
-  assign op2_man_temp = {(MANTISSA+1){subtract}} ^ shifted_op2_man +
-                    {{(MANTISSA) {1'b0}}, subtract};
+  fp_add_shift #(
+      .MANTISSA_SIZE(MANTISSA),
+      .EXPONENT_SIZE(EXPONENT)
+  ) fp_add_shift_inst (
+      .op1(op1),
+      .op2(op2),
 
-  // TODO(Rur1k): add rounding modes
-  assign {cout, temp_mantissa} = {op1_implicit_1, op1_man} + op2_man_temp;
-  assign out_mantissa = temp_exponent=={EXPONENT{1'b1}} ? 23'h0:
-                        (cout ? temp_mantissa[MANTISSA:1]:
-                         temp_mantissa[MANTISSA-1:0]);
-  assign temp_exponent = cout ? op1_exp + 1 : op1_exp;
-  assign Y = {op1_sign, temp_exponent, out_mantissa};
+      .shift_amt(shift_amt),
+      .subtract(subtract),
+      .out_sign(out_sign),
+      .out_exponent(out_exponent),
+      .out_mantissa(out_mantissa)
+  );
+
+  assign Y = {out_sign, out_exponent, out_mantissa};
 
 endmodule
 
+
+module fp_add_order #(
+    parameter int SIZE = 32,
+    parameter int EXPONENT_SIZE = 8,
+    parameter int MANTISSA_SIZE = 23
+) (
+    input logic [SIZE-1:0] A,
+    input logic [SIZE-1:0] B,
+    output logic [SIZE-1:0] op1,
+    output logic [SIZE-1:0] op2,
+    output logic [EXPONENT_SIZE-1:0] shift_amt,
+    output logic subtract
+);
+
+  logic [EXPONENT_SIZE-1:0] A_exp, B_exp;
+  logic A_exp_gt_B_exp;
+
+  assign subtract = A[SIZE-1] ^ B[SIZE-1];
+
+  assign A_exp = A[SIZE-2:SIZE-EXPONENT_SIZE-1];
+  assign B_exp = B[SIZE-2:SIZE-EXPONENT_SIZE-1];
+
+  assign A_exp_gt_B_exp = A_exp > B_exp;
+
+  assign shift_amt = (op1[SIZE-2:SIZE-EXPONENT_SIZE-1] - op2[SIZE-2:SIZE-EXPONENT_SIZE-1]);
+
+  assign op1 = A_exp_gt_B_exp ? A : B;
+  assign op2 = A_exp_gt_B_exp ? B : A;
+
+endmodule
+
+module fp_add_shift #(
+    parameter int SIZE = 32,
+    parameter int MANTISSA_SIZE = 23,
+    parameter int EXPONENT_SIZE = 8
+) (
+    input logic [SIZE-1:0] op1,
+    input logic [SIZE-1:0] op2,
+    input logic [EXPONENT_SIZE-1:0] shift_amt,
+    input logic subtract,
+    output logic out_sign,
+    output logic [EXPONENT_SIZE-1:0] out_exponent,
+    output logic [MANTISSA_SIZE-1:0] out_mantissa
+);
+
+  logic op1_implicit_1;
+  logic op2_implicit_1;
+  logic [MANTISSA_SIZE-1:0] op1_man;
+  logic [MANTISSA_SIZE-1:0] op2_man;
+  logic [EXPONENT_SIZE-1:0] op1_exp;
+  logic [EXPONENT_SIZE-1:0] op2_exp;
+  logic [MANTISSA_SIZE:0] temp_mantissa;
+  logic [MANTISSA_SIZE:0] shifted_op2_man;
+  logic [MANTISSA_SIZE:0] op2_man_temp;
+  logic cout;
+
+  assign op1_man = op1[SIZE-EXPONENT_SIZE-2:0];
+  assign op2_man = op2[SIZE-EXPONENT_SIZE-2:0];
+  assign op1_exp = op1[SIZE-2:SIZE-EXPONENT_SIZE-1];
+  assign op2_exp = op2[SIZE-2:SIZE-EXPONENT_SIZE-1];
+
+  assign op1_implicit_1 = op1_exp != 0;
+  assign op2_implicit_1 = op2_exp != 0;
+
+  assign shifted_op2_man = {op2_implicit_1, op2_man} >> shift_amt;
+
+  assign op2_man_temp = {(MANTISSA_SIZE+1){subtract}} ^ shifted_op2_man +
+                        {{(MANTISSA_SIZE) {1'b0}}, subtract};
+
+  // TODO(Rur1k): add rounding modes
+  assign {cout, temp_mantissa} = {op1_implicit_1, op1_man} + op2_man_temp;
+  assign out_exponent = cout ? op1_exp + 1 : op1_exp;
+
+  assign out_mantissa = out_exponent=={EXPONENT_SIZE{1'b1}} ? 23'h0:
+                      (cout ? temp_mantissa[MANTISSA_SIZE:1]:
+                       temp_mantissa[MANTISSA_SIZE-1:0]);
+  assign out_sign = op1[SIZE-1];
+
+endmodule
+
+// module fp_add_exp_calc #(
+//     parameter EXPONENT_SIZE = 8,
+//     parameter MANTISSA_SIZE = 23
+// ) (
+//     input  [MANTISSA_SIZE-1:0] mantissa,
+//     input  [MANTISSA_SIZE-1:0] exponent,
+//     output [EXPONENT_SIZE-1:0] out_exponent
+// );
+
+// endmodule
