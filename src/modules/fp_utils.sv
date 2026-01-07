@@ -53,7 +53,7 @@ module fp_align_add #(
   assign op2_exp = op2[SIZE-2:MANTISSA_SIZE];
 
   assign op1_imp_1 = op1_exp != 0;
-  assign op2_imp_1 = op1_exp != 0;
+  assign op2_imp_1 = op2_exp != 0;
   always @(*) begin
     shift_amt = op1_exp - op2_exp;
     op1_man = {op1_imp_1, op1_man_temp};
@@ -132,12 +132,16 @@ module fp_normalize_round #(
   logic [MANTISSA_SIZE-1:0] round_man;
   logic [EXPONENT_SIZE-1:0] round_exp;
   logic round_cout;
+  logic RNE;
+  logic new_sticky_bit;
+  assign new_sticky_bit = sticky_bit | discarded_bit;
+  assign RNE = new_guard_bit & (new_round_bit | new_sticky_bit | norm_man[0]);
 
   always @(*) begin : rounding_step
     round_cout = 0;
     round_man  = norm_man;
     round_exp  = norm_exp;
-    if (new_guard_bit) begin
+    if (RNE) begin
       {round_cout, round_man} = norm_man + 1;
       round_exp = round_cout ? norm_exp + 1 : norm_exp;
     end
