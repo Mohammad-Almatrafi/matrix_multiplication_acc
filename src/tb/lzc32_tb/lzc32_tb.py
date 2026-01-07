@@ -4,7 +4,7 @@ from cocotb.clock import Clock
 from cocotb.triggers import RisingEdge, FallingEdge, Timer
 import random
 
-WIDTH = 64
+WIDTH = 32
 
 @cocotb.test()
 async def lzc64_test(dut):
@@ -49,4 +49,3 @@ def check(datain):
             break
 
     return zero_count,all_zeros
-

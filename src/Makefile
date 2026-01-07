@@ -22,4 +22,4 @@ lzc64_tb_run:
 	cd tb/fp_add_tb && make
 
 clean:
-	rm -rf tb/sim_build tb/__pycache__ tb/results.xml tb/dump.vcd
+	rm -rf tb/*/sim_build tb/*/__pycache__ tb/*/results.xml tb/*/dump.vcd tb/*/fp_add_test.log

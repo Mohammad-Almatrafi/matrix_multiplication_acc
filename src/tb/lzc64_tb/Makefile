@@ -11,7 +11,7 @@ WAVES = 1
 PWD = $(shell pwd)
 
 # verilog sources
-VERILOG_SOURCES += $(PWD)/../../modules/fp_utils.sv
+VERILOG_SOURCES += $(PWD)/../../modules/lzc.sv
 VERILOG_SOURCES += $(PWD)/lzc64_wrapper.sv
 
 # TOPLEVEL is the name of the toplevel module in your Verilog or VHDL file

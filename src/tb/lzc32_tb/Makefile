@@ -12,13 +12,13 @@ PWD = $(shell pwd)
 
 # verilog sources
 VERILOG_SOURCES += $(PWD)/../../modules/lzc.sv
-VERILOG_SOURCES += $(PWD)/lzc4_wrapper.sv
+VERILOG_SOURCES += $(PWD)/lzc32_wrapper.sv
 
 # TOPLEVEL is the name of the toplevel module in your Verilog or VHDL file
-TOPLEVEL = lzc4_wrapper
+TOPLEVEL = lzc32_wrapper
 
 # MODULE is the basename of the Python test file
-MODULE = lzc4_tb
+MODULE = lzc32_tb
 
 # include cocotb's make rules to take care of the simulator setup
 include $(shell cocotb-config --makefiles)/Makefile.sim

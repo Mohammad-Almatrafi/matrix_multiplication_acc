@@ -4,12 +4,14 @@ from cocotb.clock import Clock
 from cocotb.triggers import RisingEdge, FallingEdge, Timer
 import random
 
+WIDTH = 4
+
 @cocotb.test()
 async def lzc4_test(dut):
     print("--------------------------------------------------")
     fails = 0
-    datain_init = np.uint8(0xF)
-    for i in range(5):
+    datain_init = np.uint64(0x1 << (WIDTH-1))
+    for i in range(WIDTH+1):
         datain = datain_init >> i
         dut.datain.value = int(datain)
         zero_count_expected, all_zeros_expected = check(datain = datain)
@@ -19,7 +21,7 @@ async def lzc4_test(dut):
         await Timer(1, unit="ns")
         if (zero_count_expected != zero_count_module or all_zeros_expected != all_zeros_module):
             fails += 1
-            print(f"datain              : {np.binary_repr(datain, 4)}")
+            print(f"datain              : {np.binary_repr(datain, WIDTH)}")
             print(f"zero_count_expected : {zero_count_expected}")
             print(f"zero_count_module   : {zero_count_module}")
             print(f"all_zeros_expected  : {all_zeros_expected}")
@@ -39,8 +41,9 @@ async def lzc4_test(dut):
 def check(datain):
     all_zeros = 1 if datain == 0 else 0
     zero_count = 0
-    for i in range(3):
-        if(((datain << i)  & 0x8) == 0):
+    mask = 0x1 << (WIDTH-1)
+    for i in range(WIDTH-1):
+        if(((datain << i)  & mask) == 0):
             zero_count += 1
         else:
             break
