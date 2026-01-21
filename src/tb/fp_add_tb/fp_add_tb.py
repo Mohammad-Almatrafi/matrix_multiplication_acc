@@ -40,12 +40,15 @@ def write_log_file(f ,src1, src2, expected, output,sim_time, sign_bool):
 
 @cocotb.test()
 async def fp_add_test(dut):
-#     floating_max = np.finfo(np.float32).max * 0.7
-#     floating_min = -np.finfo(np.float32).max * 0.7
-    floating_min = np.float32(-1)
-    floating_max = np.float32(1)
+    # floating_max = np.finfo(np.float32).max * 0.5
+    # floating_min = -np.finfo(np.float32).max * 0.5
+    # floating_min = np.float32(-1)
+    # floating_max = np.float32(1)
+    
+    floating_min = -np.finfo(np.float32).tiny * 2
+    floating_max = np.finfo(np.float32).tiny * 2
     count = 0
-    iterations = 100
+    iterations = 5**4
     is_fail = False
     diff_count = 0
     dut.A.value = 0

@@ -120,22 +120,33 @@ module fp_normalize_round #(
     if (cout ^ subtract) begin
       norm_exp = exponent + 1;
       norm_man = sum[MANTISSA_SIZE:1];
+      new_guard_bit = sum[0];
+      new_round_bit = guard_bit;
+      discarded_bit = round_bit;
     end else if (all_zeros) begin
       norm_exp = 0;
       norm_man = 0;
+      new_guard_bit = 0;
+      new_round_bit = 0;
     end else begin
       norm_exp = exponent - {{(EXPONENT_SIZE - ZC_WIDTH) {1'b0}}, zero_count};
-      {norm_man, new_guard_bit, new_round_bit,discarded_bit} = {sum[MANTISSA_SIZE-1:0], guard_bit, round_bit,sticky_bit} << zero_count;
+      if(norm_exp > exponent)begin
+        norm_exp = 0;
+      end
+      {norm_man, new_guard_bit, new_round_bit, discarded_bit} = {sum[MANTISSA_SIZE-1:0], guard_bit, round_bit, sticky_bit} << zero_count;
     end
   end
 
   logic [MANTISSA_SIZE-1:0] round_man;
   logic [EXPONENT_SIZE-1:0] round_exp;
   logic round_cout;
-  logic RNE;
+  logic RNE, RTINF, RTNINF;
+
   logic new_sticky_bit;
   assign new_sticky_bit = sticky_bit | discarded_bit;
   assign RNE = new_guard_bit & (new_round_bit | new_sticky_bit | norm_man[0]);
+  // assign RTINF = ~op1[SIZE-1] & (new_guard_bit | new_round_bit | new_sticky_bit);
+  // assign RTNINF = op1[SIZE-1] & (new_guard_bit | new_round_bit | new_sticky_bit);
 
   always @(*) begin : rounding_step
     round_cout = 0;
@@ -147,6 +158,5 @@ module fp_normalize_round #(
     end
   end
   assign normalized_fp = {op1[SIZE-1], round_exp, round_man};
-
 
 endmodule

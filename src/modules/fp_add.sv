@@ -34,6 +34,7 @@ module fp_add #(
   logic [MANTISSA_SIZE:0] sum;
   logic cout, guard_bit, round_bit, sticky_bit, subtract;
   logic [SIZE-1:0] normalized_fp;
+  logic op1_imp_1;
   initial begin
     if (MANTISSA_SIZE == 0 && EXPONENT_SIZE == 0)
       $fatal(1, "Floating point size 32 is the only one supported for now");
@@ -61,23 +62,25 @@ module fp_add #(
       .guard_bit(guard_bit),
       .round_bit(round_bit),
       .sticky_bit(sticky_bit),
-      .subtract(subtract)
+      .subtract(subtract),
+      .op1_imp_1(op1_imp_1)
   );
 
- fp_normalize_round #(
-    .SIZE(SIZE),
-    .EXPONENT_SIZE(EXPONENT_SIZE),
-    .MANTISSA_SIZE(MANTISSA_SIZE)
- ) fp_normalize_round_inst(
-    .cout(cout),
-    .guard_bit(guard_bit),
-    .round_bit(round_bit),
-    .sticky_bit(sticky_bit),
-    .subtract(subtract),
-    .sum(sum),
-    .op1(op1),
-    .normalized_fp(normalized_fp)
-);
+  fp_normalize_round #(
+      .SIZE(SIZE),
+      .EXPONENT_SIZE(EXPONENT_SIZE),
+      .MANTISSA_SIZE(MANTISSA_SIZE)
+  ) fp_normalize_round_inst (
+      .op1_imp_1(op1_imp_1),
+      .cout(cout),
+      .guard_bit(guard_bit),
+      .round_bit(round_bit),
+      .sticky_bit(sticky_bit),
+      .subtract(subtract),
+      .sum(sum),
+      .op1(op1),
+      .normalized_fp(normalized_fp)
+  );
 
   assign Y = normalized_fp;
 
