@@ -40,30 +40,38 @@ def write_log_file(f ,src1, src2, expected, output,sim_time, sign_bool):
 
 @cocotb.test()
 async def fp_add_test(dut):
-    # floating_max = np.finfo(np.float32).max * 0.5
-    # floating_min = -np.finfo(np.float32).max * 0.5
+    # floating_max = np.finfo(np.float32).max
+    # floating_min = -np.finfo(np.float32).max
     # floating_min = np.float32(-1)
     # floating_max = np.float32(1)
     
     floating_min = -np.finfo(np.float32).tiny * 2
     floating_max = np.finfo(np.float32).tiny * 2
     count = 0
-    iterations = 5**4
+    iterations = int(10**4 * 0.5)
     is_fail = False
     diff_count = 0
     dut.A.value = 0
     dut.B.value = 0
     rng = np.random.default_rng(42)
     with open("fp_add_test.log", "w") as f:
-        for _ in range(iterations):
+        for i in range(iterations):
             await Timer(1, unit="ns")
             x1 = rng.uniform(np.float64(floating_min), np.float64(floating_max))
             x2 = rng.uniform(np.float64(floating_min), np.float64(floating_max))
+            # x1 = np.uint32(0xFF << 23 | rng.integers(0, 2**23) | rng.integers(0,2) << 31)
+            # x2 = np.uint32(0xFF << 23 | rng.integers(0, 2**23) | rng.integers(0,2) << 31)
+            # x1 = x1.view(np.float32)
+            # x2 = x2.view(np.float32)
+            # x1 = rng.integers(0, 2**32, dtype=np.uint32)
+            # x2 = rng.integers(0, 2**32, dtype=np.uint32)
+            # x1 = x1.view(np.float32)
+            # x2 = x2.view(np.float32)
             src1 = np.float32(x1)
             src2 = np.float32(x2)
             dut.A.value = int(src1.view(np.uint32))
             dut.B.value = int(src2.view(np.uint32))
-            expected = src1+src2
+            expected = src2 + src1
             expected = int(expected.view(np.uint32))
             await Timer(1, unit="ns")
             output = dut.Y.value.to_unsigned()
