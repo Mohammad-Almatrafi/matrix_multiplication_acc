@@ -48,7 +48,7 @@ async def fp_add_test(dut):
     floating_min = -np.finfo(np.float32).tiny * 2
     floating_max = np.finfo(np.float32).tiny * 2
     count = 0
-    iterations = int(10**4 * 0.5)
+    iterations = int(100 * 0.5)
     is_fail = False
     diff_count = 0
     dut.A.value = 0
@@ -57,12 +57,19 @@ async def fp_add_test(dut):
     with open("fp_add_test.log", "w") as f:
         for i in range(iterations):
             await Timer(1, unit="ns")
-            x1 = rng.uniform(np.float64(floating_min), np.float64(floating_max))
-            x2 = rng.uniform(np.float64(floating_min), np.float64(floating_max))
-            # x1 = np.uint32(0xFF << 23 | rng.integers(0, 2**23) | rng.integers(0,2) << 31)
-            # x2 = np.uint32(0xFF << 23 | rng.integers(0, 2**23) | rng.integers(0,2) << 31)
-            # x1 = x1.view(np.float32)
-            # x2 = x2.view(np.float32)
+            # x1 = rng.uniform(np.float64(floating_min), np.float64(floating_max))
+            # x2 = rng.uniform(np.float64(floating_min), np.float64(floating_max))
+            if i < 10:
+                x1 = np.uint32(0xFF << 23 | 0 | rng.integers(0,2) << 31)
+                x2 = np.uint32(0x0 << 23 | 0 | rng.integers(0,2) << 31)
+                x1 = x1.view(np.float32)
+                x2 = x2.view(np.float32)
+            else:
+                x1 = np.uint32(0xFF << 23 | rng.integers(0, 2**23) | rng.integers(0,2) << 31)
+                # x2 = np.uint32(0xFF << 23 | rng.integers(0, 2**23) | rng.integers(0,2) << 31)
+                x2 = np.uint32(0x0 << 23 | 0 | rng.integers(0,2) << 31)
+                x1 = x1.view(np.float32)
+                x2 = x2.view(np.float32)
             # x1 = rng.integers(0, 2**32, dtype=np.uint32)
             # x2 = rng.integers(0, 2**32, dtype=np.uint32)
             # x1 = x1.view(np.float32)

@@ -74,7 +74,6 @@ module fp_normalize_round #(
     input [SIZE-1:0] B,
     input logic A_is_nan,
     input logic B_is_nan,
-    input logic op1_imp_1,
     input logic cout,
     input logic guard_bit,
     input logic round_bit,
@@ -82,6 +81,7 @@ module fp_normalize_round #(
     input logic subtract,
     input logic [MANTISSA_SIZE:0] sum,
     input logic [SIZE-1:0] op1,
+    input logic op1_imp_1,
     output logic [SIZE-1:0] normalized_fp
 );
 
@@ -121,23 +121,37 @@ module fp_normalize_round #(
     new_guard_bit = guard_bit;
     new_round_bit = round_bit;
 
-    if (cout ^ subtract) begin
+    if (~op1_imp_1 & sum[MANTISSA_SIZE] & ~subtract) begin
+      norm_exp = exponent + 1;
+      norm_man = sum[MANTISSA_SIZE-1:0];
+      new_guard_bit = guard_bit;
+      new_round_bit = round_bit;
+      discarded_bit = discarded_bit;
+    end
+    else if (cout ^ subtract) begin
       norm_exp = exponent + 1;
       norm_man = sum[MANTISSA_SIZE:1];
       new_guard_bit = sum[0];
       new_round_bit = guard_bit;
       discarded_bit = round_bit;
+
     end else if (all_zeros) begin
       norm_exp = 0;
       norm_man = 0;
       new_guard_bit = 0;
       new_round_bit = 0;
+
     end else begin
       norm_exp = exponent - {{(EXPONENT_SIZE - ZC_WIDTH) {1'b0}}, zero_count};
       if (norm_exp > exponent) begin
         norm_exp = 0;
       end
-      {norm_man, new_guard_bit, new_round_bit, discarded_bit} = {sum[MANTISSA_SIZE-1:0], guard_bit, round_bit, sticky_bit} << zero_count;
+      if (norm_exp == 0) begin
+        {norm_man, new_guard_bit, new_round_bit, discarded_bit} = {
+          sum[MANTISSA_SIZE-1:0], guard_bit, round_bit, sticky_bit
+        };
+      end else
+        {norm_man, new_guard_bit, new_round_bit, discarded_bit} = {sum[MANTISSA_SIZE-1:0], guard_bit, round_bit, sticky_bit} << zero_count;
     end
   end
 
@@ -156,10 +170,12 @@ module fp_normalize_round #(
     round_cout = 0;
     round_man  = norm_man;
     round_exp  = norm_exp;
+
     if (RNE) begin
       {round_cout, round_man} = norm_man + 1;
       round_exp = round_cout ? norm_exp + 1 : norm_exp;
     end
+
   end
   always @(*) begin
     if (A_is_nan) normalized_fp = A | 1 << 22;
