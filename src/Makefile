@@ -12,6 +12,9 @@ output:
 fp_add_tb_run:
 	cd tb/fp_add_tb && make
 
+fp_mult_tb_run:
+	cd tb/fp_mult_tb && make
+
 lzc4_tb_run:
 	cd tb/fp_add_tb && make
 
@@ -22,4 +25,5 @@ lzc64_tb_run:
 	cd tb/fp_add_tb && make
 
 clean:
-	rm -rf tb/*/sim_build tb/*/__pycache__ tb/*/results.xml tb/*/dump.vcd tb/*/fp_add_test.log
+	rm -rf tb/*/sim_build tb/*/__pycache__ tb/*/results.xml tb/*/dump.vcd \
+	tb/*/*.log tb/build tb/__pycache__

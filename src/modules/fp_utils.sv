@@ -20,7 +20,7 @@ module fp_align_add #(
   logic [SIZE-1:0] op2;
   logic op1_sign;
   logic op2_sign;
-  logic [MANTISSA_SIZE:0] op1_man, op2_man;
+  logic [MANTISSA_SIZE:0] op1_man, op2_man, op2_man_temp2;
   logic [EXPONENT_SIZE-1:0] shift_amt;
   logic [EXPONENT_SIZE-1:0] op1_exp, op2_exp, comp_op1_exp, comp_op2_exp;
   logic [MANTISSA_SIZE-1:0] op1_man_temp, op2_man_temp;
@@ -45,15 +45,16 @@ module fp_align_add #(
 
   assign op1_imp_1 = op1_exp != 0;
   assign op2_imp_1 = op2_exp != 0;
-  assign comp_op1_exp = op1_imp_1 ? op1_exp : 1;
-  assign comp_op2_exp = op2_imp_1 ? op2_exp : 1;
+  assign comp_op1_exp = op1_exp;  //op1_imp_1 ?  : 1;
+  assign comp_op2_exp = op2_exp;  //op2_imp_1 ?  : 1;
   assign A_is_nan = A[SIZE-2:MANTISSA_SIZE] == {EXPONENT_SIZE{1'b1}} & A[MANTISSA_SIZE-1:0] != 0;
   assign B_is_nan = B[SIZE-2:MANTISSA_SIZE] == {EXPONENT_SIZE{1'b1}} & B[MANTISSA_SIZE-1:0] != 0;
 
   always @(*) begin
     shift_amt = comp_op1_exp - comp_op2_exp;
-    op1_man = {op1_imp_1, op1_man_temp};
-    padded_op2 = {op2_imp_1, op2_man_temp, {(MANTISSA_SIZE + 2) {1'b0}}};
+    op1_man = op1_imp_1 ? {1'b1, op1_man_temp} : {op1_man_temp, 1'b0};
+    op2_man_temp2 = op2_imp_1 ? {1'b1, op2_man_temp} : {op2_man_temp, 1'b0};
+    padded_op2 = {op2_man_temp2, {(MANTISSA_SIZE + 2) {1'b0}}};
     padded_op2 = padded_op2 >> shift_amt;
     padded_op2 = padded_op2 ^ {(MANTISSA_SIZE * 2 + 3) {subtract}};
     {neg_cout,op2_man, guard_bit, round_bit, sticky_bits} = padded_op2 + {{(MANTISSA_SIZE*2+2){1'b0}},subtract};
@@ -127,8 +128,7 @@ module fp_normalize_round #(
       new_guard_bit = guard_bit;
       new_round_bit = round_bit;
       discarded_bit = discarded_bit;
-    end
-    else if (cout ^ subtract) begin
+    end else if (cout ^ subtract) begin
       norm_exp = exponent + 1;
       norm_man = sum[MANTISSA_SIZE:1];
       new_guard_bit = sum[0];
