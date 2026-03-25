@@ -4,6 +4,15 @@ from cocotb.clock import Clock
 from cocotb.triggers import RisingEdge, FallingEdge, Timer
 import random
 
+def float_equal(a, b):
+    if np.isnan(a) and np.isnan(b):
+        return True
+    else:
+        a_bin = a.view(np.uint32)
+        b_bin = b.view(np.uint32)
+        return a_bin == b_bin
+
+
 def write_log_file(f ,src1, src2, expected, output,sim_time, sign_bool):
     A_sign       = np.binary_repr(src1.view(np.uint32) >> 31 & 1,1)
     A_mantissa   = np.binary_repr(src1.view(np.uint32) >> 0 & 0x7FFFFF,23)
@@ -40,52 +49,68 @@ def write_log_file(f ,src1, src2, expected, output,sim_time, sign_bool):
 
 @cocotb.test()
 async def fp_add_test(dut):
-    # floating_max = np.finfo(np.float32).max
-    # floating_min = -np.finfo(np.float32).max
-    # floating_min = np.float32(-1)
-    # floating_max = np.float32(1)
-    
-    floating_min = -np.finfo(np.float32).tiny * 2
-    floating_max = np.finfo(np.float32).tiny * 2
+
+    floating_min = -np.finfo(np.float32).tiny * 4
+    floating_max = np.finfo(np.float32).tiny * 4
+
     count = 0
     iterations = int(10**6 * 0.5)
+    # iterations = int(40)
+    # iterations = 2
     is_fail = False
     diff_count = 0
     dut.A.value = 0
     dut.B.value = 0
-    rng = np.random.default_rng(42)
+    rng = np.random.default_rng()
+
+    array = [-1,1]
+
     with open("fp_add_test.log", "w") as f:
         for i in range(iterations):
             await Timer(1, unit="ns")
             # x1 = rng.uniform(np.float64(floating_min), np.float64(floating_max))
             # x2 = rng.uniform(np.float64(floating_min), np.float64(floating_max))
-            if i < 10:
-                x1 = np.uint32(0xFF << 23 | 0 | rng.integers(0,2) << 31)
-                x2 = np.uint32(0x0 << 23 | 0 | rng.integers(0,2) << 31)
-                x1 = x1.view(np.float32)
-                x2 = x2.view(np.float32)
-            else:
-                x1 = np.uint32(0xFF << 23 | rng.integers(0, 2**23) | rng.integers(0,2) << 31)
-                # x2 = np.uint32(0xFF << 23 | rng.integers(0, 2**23) | rng.integers(0,2) << 31)
-                x2 = np.uint32(0x0 << 23 | 0 | rng.integers(0,2) << 31)
-                x1 = x1.view(np.float32)
-                x2 = x2.view(np.float32)
-            # x1 = rng.integers(0, 2**32, dtype=np.uint32)
-            # x2 = rng.integers(0, 2**32, dtype=np.uint32)
+            # x1 = np.uint32(0xFF << 23 | rng.integers(0, 2) << 22 | rng.integers(0,2) << 31)
+            # x2 = np.uint32(0xFF << 23 | rng.integers(0, 2) << 22 | rng.integers(0,2) << 31)
+            idx = rng.integers(0,2)
+
+            first = array[idx]
+            second = array[idx-1]
+
+            x1 = rng.integers(0, 2**32, dtype=np.uint32)
+            x2 = rng.integers(0, 2**32, dtype=np.uint32)
+            x1 = first * x1.view(np.float32)
+            x2 = second * x1.view(np.float32)
             # x1 = x1.view(np.float32)
             # x2 = x2.view(np.float32)
+            x1 = np.float32(x1)
+            x2 = np.float32(x2)
+
+            # x1 = np.float32(x1)
+            # x2 = np.float32(-x1)
+
+            # x1 = x1.view(np.float32)
+            # x2 = x2.view(np.float32)
+
             src1 = np.float32(x1)
             src2 = np.float32(x2)
             dut.A.value = int(src1.view(np.uint32))
             dut.B.value = int(src2.view(np.uint32))
             expected = src2 + src1
-            expected = int(expected.view(np.uint32))
             await Timer(1, unit="ns")
             output = dut.Y.value.to_unsigned()
+            output_comp = np.uint32(int(output)).view(np.float32)
+            
             sim_time = cocotb.simtime.get_sim_time(unit = 'ns')
             sim_time = int(sim_time)
+            compare = float_equal(output_comp, expected)
+            compare = not compare
 
-            if int(dut.Y.value) != expected:
+
+            expected = int(expected.view(np.uint32))
+
+
+            if compare:
                 is_fail = True
                 count += 1
                 sign_diff = (src1.view(np.uint32) >> 31 & 1) ^ (src2.view(np.uint32) >> 31 & 1)

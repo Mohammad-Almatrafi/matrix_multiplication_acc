@@ -27,71 +27,19 @@ module fp_add #(
   //                           SIZE == 128 ? 112 :
   //                           0;
 
-  localparam int EXPONENT_SIZE = SIZE == 32 ? 8 : 0;
-  localparam int MANTISSA_SIZE = SIZE == 32 ? 23 : 0;
+  localparam int NB_EXP = SIZE == 32 ? 8 : 0;
+  localparam int NB_MAN = SIZE == 32 ? 23 : 0;
 
-  logic [SIZE-1:0] op1, op2;
-  logic [MANTISSA_SIZE:0] sum;
-  logic cout, guard_bit, round_bit, sticky_bit, subtract;
-  logic [SIZE-1:0] normalized_fp;
-  logic op1_imp_1, op1_is_nan, op2_is_nan;
-  logic A_ge_B;
-  initial begin
-    if (MANTISSA_SIZE == 0 && EXPONENT_SIZE == 0)
-      $fatal(1, "Floating point size 32 is the only one supported for now");
-    //  %0d is not specified by the IEEE 754 standard", SIZE);
-  end
-
-  // fp_sort #(
-  //     .SIZE(SIZE)
-  // ) fp_sort_inst (
-  //     .A_ge_B(A_ge_B),
-  //     .A  (A),
-  //     .B  (B),
-  //     .op1(op1),
-  //     .op2(op2)
-  // );
-
-  fp_align_add #(
-      .SIZE(SIZE),
-      .EXPONENT_SIZE(EXPONENT_SIZE),
-      .MANTISSA_SIZE(MANTISSA_SIZE)
-  ) fp_align_add_inst (
+  fp_add_all #(
+      .SIZE  (SIZE),
+      .NB_EXP(NB_EXP),
+      .NB_MAN(NB_MAN)
+  ) fp_add_all_inst (
       .A(A),
       .B(B),
-      .sum(sum),
-      .cout(cout),
-      .guard_bit(guard_bit),
-      .round_bit(round_bit),
-      .sticky_bit(sticky_bit),
-      .subtract(subtract),
-      .op1_imp_1(op1_imp_1),
-      .A_is_nan(op1_is_nan),
-      .B_is_nan(op2_is_nan),
-      .op1(op1)
+      .Y(Y)
   );
 
-  fp_normalize_round #(
-      .SIZE(SIZE),
-      .EXPONENT_SIZE(EXPONENT_SIZE),
-      .MANTISSA_SIZE(MANTISSA_SIZE)
-  ) fp_normalize_round_inst (
-      .A(A),
-      .B(B),
-      .op1_imp_1(op1_imp_1),
-      .A_is_nan(op1_is_nan),
-      .B_is_nan(op2_is_nan),
-      .cout(cout),
-      .guard_bit(guard_bit),
-      .round_bit(round_bit),
-      .sticky_bit(sticky_bit),
-      .subtract(subtract),
-      .sum(sum),
-      .op1(op1),
-      .normalized_fp(normalized_fp)
-  );
-
-  assign Y = normalized_fp;
 
 endmodule
 
