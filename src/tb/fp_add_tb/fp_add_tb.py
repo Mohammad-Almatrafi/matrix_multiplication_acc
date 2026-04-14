@@ -119,10 +119,10 @@ async def fp_add_test(dut):
                 write_log_file(f,src1, src2, expected, output,sim_time,sign_bool)
                 diff_count += sign_diff
 
-            else:
-                f.write(f"PASS:\n")
-                sign_bool = False
-                write_log_file(f,src1, src2, expected, output,sim_time, sign_bool)
+            # else:
+                # f.write(f"PASS:\n")
+                # sign_bool = False
+                # write_log_file(f,src1, src2, expected, output,sim_time, sign_bool)
 
         f.write(f"tests passed: {iterations-count}\n" +
                 f"tests failed: {count}\n")

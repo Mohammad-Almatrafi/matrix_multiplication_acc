@@ -52,13 +52,12 @@ module fp_mult #(
   assign result_sign = A_sign ^ B_sign;
 
   logic dbg_gt;
-  localparam ZC_WIDTH = $clog2(MANTISSA_SIZE * 2);
+  localparam int ZC_WIDTH = $clog2(MANTISSA_SIZE * 2);
   logic [ZC_WIDTH-1:0] zero_count;
   logic all_zeros;
-
   generate
     case (SIZE)
-      16: begin
+      16: begin : gen_16float
       end
       32: begin : gen_32float
         lzc64 lzc64_inst (
@@ -67,9 +66,9 @@ module fp_mult #(
             .all_zeros(all_zeros)
         );
       end
-      64: begin
+      64: begin : gen64float
       end
-      128: begin
+      128: begin : gen128float
       end
 
     endcase
@@ -78,7 +77,7 @@ module fp_mult #(
   localparam logic [EXPONENT_SIZE-1:0] MAX_MINUS_1 = 2 ** EXPONENT_SIZE - 2;
   localparam logic [EXPONENT_SIZE-1:0] MAX_EXPONENT = 2 ** EXPONENT_SIZE - 1;
   localparam logic [EXPONENT_SIZE-1:0] EXPNENT_BIAS = 2 ** (EXPONENT_SIZE - 1) - 1;
-  localparam logic [MANTISSA_SIZE-1:0] qNaN = 2**(MANTISSA_SIZE-1);
+  localparam logic [MANTISSA_SIZE-1:0] qNaN = 2 ** (MANTISSA_SIZE - 1);
 
   always @(*) begin
     dbg_exponent = {2'b0, A_exp} + {2'b0, B_exp} - {2'b0, EXPNENT_BIAS};
@@ -176,10 +175,11 @@ module fp_mult #(
     normalized_fp = {
       round_result[SIZE-1], round_result[SIZE-2:MANTISSA_SIZE], round_result[MANTISSA_SIZE-1:0]
     };
-    if (round_result[SIZE-2:MANTISSA_SIZE] == MAX_EXPONENT & !one_is_NaN & !one_is_inf)
+    if (round_result[SIZE-2:MANTISSA_SIZE] == MAX_EXPONENT & !one_is_NaN & !one_is_inf) begin
       normalized_fp = {
         round_result[SIZE-1], round_result[SIZE-2:MANTISSA_SIZE], {MANTISSA_SIZE{1'b0}}
       };
+    end
   end
 
 

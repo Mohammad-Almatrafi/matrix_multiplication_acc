@@ -214,9 +214,9 @@ module fp_add_all #(
 endmodule
 
 module flags #(
-    SIZE   = 32,
-    NB_EXP = 8,
-    NB_MAN = 23
+    parameter int SIZE   = 32,
+    parameter int NB_EXP = 8,
+    parameter int NB_MAN = 23
 ) (
     input  logic [  SIZE-1:0] number,
     output logic [NFLAGS-1:0] output_flags
@@ -242,8 +242,8 @@ module flags #(
 endmodule
 
 module shift_and_grs #(
-    NB_EXP = 8,
-    NB_MAN = 23
+    parameter int NB_EXP = 8,
+    parameter int NB_MAN = 23
 ) (
     shift_amt,
     op2flags,
@@ -281,10 +281,10 @@ module shift_and_grs #(
 endmodule
 
 module normalize_fp #(
-    SIZE = 32,
-    NB_EXP = 8,
-    NB_MAN = 23,
-    ZC_WIDTH = 5
+    parameter int SIZE = 32,
+    parameter int NB_EXP = 8,
+    parameter int NB_MAN = 23,
+    parameter int ZC_WIDTH = 5
 ) (
     sum,
     overflow,
@@ -384,9 +384,9 @@ module normalize_fp #(
 endmodule
 
 module rounding_fp #(
-    SIZE   = 32,
-    NB_EXP = 8,
-    NB_MAN = 23
+    parameter int SIZE   = 32,
+    parameter int NB_EXP = 8,
+    parameter int NB_MAN = 23
 ) (
     fp_number,
     fp_rounding,
@@ -423,13 +423,14 @@ module rounding_fp #(
   output floating_point_t rounded_fp;
   output logic ovf;
 
-  logic RNE, RTZ, RDN, RUP;  //,RMM;
+  logic RNE, RDN, RUP, shared_rnd, pre_RNE;  //,RMM;
   floating_point_t round_fp;
 
-  assign RNE = (fp_number.mantissa[0] | fp_rounding.sticky_bit | fp_rounding.round_bit) & fp_rounding.guard_bit;
-  assign RTZ = 1;
-  assign RDN = fp_number.sign & (fp_rounding.sticky_bit | fp_rounding.round_bit | fp_rounding.guard_bit);
-  assign RUP = ~fp_number.sign & (fp_rounding.sticky_bit | fp_rounding.round_bit | fp_rounding.guard_bit);
+  assign pre_RNE = (fp_number.mantissa[0] | fp_rounding.sticky_bit | fp_rounding.round_bit);
+  assign RNE = pre_RNE & fp_rounding.guard_bit;
+  assign shared_rnd = (fp_rounding.sticky_bit | fp_rounding.round_bit | fp_rounding.guard_bit);
+  assign RDN = fp_number.sign & shared_rnd;
+  assign RUP = ~fp_number.sign & shared_rnd;
 
   always @(*) begin
     round_fp = fp_number;
@@ -456,9 +457,9 @@ module rounding_fp #(
 endmodule
 
 module output_decider #(
-    SIZE   = 32,
-    NB_EXP = 8,
-    NB_MAN = 23
+    parameter int SIZE   = 32,
+    parameter int NB_EXP = 8,
+    parameter int NB_MAN = 23
 ) (
     fp_number,
     op1,
@@ -494,17 +495,22 @@ module output_decider #(
   output floating_point_t output_fp;
 
   logic [NB_MAN-1:0] intermediate_mantissa;
-  logic emax_condition, qnan_condition;
+  logic emax_condition, qnan_condition, one_is_nan;
   logic overflow;
+
+  assign one_is_nan = flags1[QNAN] | flags2[QNAN];
+
   assign overflow = round_ovf | normalize_ovf;
 
-  assign emax_condition = flags1[QNAN] | flags2[QNAN] | flags1[INFINITY] | flags2[INFINITY] | overflow;
+  assign emax_condition = one_is_nan | flags1[INFINITY] | flags2[INFINITY] | overflow;
 
   assign output_fp.sign = fp_number.sign;
 
-  assign qnan_condition = (op1.sign ^ op2.sign) | flags1[QNAN] | flags2[QNAN];
+  assign qnan_condition = (op1.sign ^ op2.sign) | one_is_nan;
 
-  assign intermediate_mantissa = qnan_condition ? 1 << (NB_MAN - 1) : 0;
+  assign intermediate_mantissa[NB_MAN-2:0] = 0;
+
+  assign intermediate_mantissa[NB_MAN-1] = qnan_condition ? 1 : 0;
 
   assign output_fp.exponent = emax_condition ? EMAX : fp_number.exponent;
 

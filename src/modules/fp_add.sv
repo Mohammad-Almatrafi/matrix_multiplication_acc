@@ -15,20 +15,20 @@ module fp_add #(
 );
 
   // NOTE(rur1k): support generalized case later
-  // localparam int EXPONENT_SIZE = SIZE == 16 ? 5 :
-  //                           SIZE == 32 ? 8 :
-  //                           SIZE == 64 ? 11 :
-  //                           SIZE == 128 ? 15 :
-  //                           0;
+  localparam int NB_EXP = SIZE == 16 ? 5 :
+                            SIZE == 32 ? 8 :
+                            SIZE == 64 ? 11 :
+                            SIZE == 128 ? 15 :
+                            0;
 
-  // localparam int MANTISSA_SIZE = SIZE == 16 ? 10 :
-  //                           SIZE == 32 ? 23 :
-  //                           SIZE == 64 ? 52 :
-  //                           SIZE == 128 ? 112 :
-  //                           0;
+  localparam int NB_MAN = SIZE == 16 ? 10 :
+                            SIZE == 32 ? 23 :
+                            SIZE == 64 ? 52 :
+                            SIZE == 128 ? 112 :
+                            0;
 
-  localparam int NB_EXP = SIZE == 32 ? 8 : 0;
-  localparam int NB_MAN = SIZE == 32 ? 23 : 0;
+  // localparam int NB_EXP = SIZE == 32 ? 8 : 0;
+  // localparam int NB_MAN = SIZE == 32 ? 23 : 0;
 
   fp_add_all #(
       .SIZE  (SIZE),
