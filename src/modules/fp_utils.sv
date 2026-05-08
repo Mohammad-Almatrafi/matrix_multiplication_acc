@@ -65,6 +65,8 @@ module fp_add_all #(
       .output_flags(aflags)
   );
 
+
+
   flags #(
       .SIZE  (SIZE),
       .NB_EXP(NB_EXP),
